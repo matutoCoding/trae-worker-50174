@@ -184,7 +184,51 @@ const SchedulePage: React.FC = () => {
       </ScrollView>
 
       {filteredStages.length > 0 ? (
-        filteredStages.map((stage) => <StageCard key={stage.id} stage={stage} />)
+        filteredStages.map((stage) => {
+          const stageSlots = scheduleSlots.filter(
+            (s) => s.stageId === stage.id && s.date === selectedDate
+          );
+          return (
+            <View key={stage.id}>
+              <StageCard stage={stage} />
+              {stageSlots.length > 0 && (
+                <View className={styles.stageSlots}>
+                  <Text className={styles.slotsTitle}>📅 {selectedDate} 档期详情</Text>
+                  {stageSlots.map((slot) => {
+                    const booking = bookings.find((b) => b.slotId === slot.id);
+                    return (
+                      <View key={slot.id} className={styles.slotRow}>
+                        <View className={styles.slotTime}>
+                          <Text className={styles.slotTimeText}>
+                            {slot.startTime} - {slot.endTime}
+                          </Text>
+                          <StatusTag status={slot.status} />
+                        </View>
+                        {slot.status !== 'available' && (
+                          <View className={styles.slotDetail}>
+                            <Text className={styles.slotDetailText}>
+                              👤 {slot.bookedBy || booking?.applicant || '—'}
+                            </Text>
+                            {booking?.performanceName && (
+                              <Text className={styles.slotDetailText}>
+                                🎭 {booking.performanceName}
+                              </Text>
+                            )}
+                            {slot.status === 'pending' && slot.expiresAt && (
+                              <Text className={styles.slotCountdown}>
+                                ⏰ {getCountdownText(slot.expiresAt)}
+                              </Text>
+                            )}
+                          </View>
+                        )}
+                      </View>
+                    );
+                  })}
+                </View>
+              )}
+            </View>
+          );
+        })
       ) : (
         <View className={styles.emptyState}>
           <Text className={styles.emptyIcon}>🎭</Text>

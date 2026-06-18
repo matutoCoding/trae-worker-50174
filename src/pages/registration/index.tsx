@@ -1,6 +1,6 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { View, Text, Input, Textarea } from '@tarojs/components';
-import Taro from '@tarojs/taro';
+import Taro, { useRouter, useDidShow } from '@tarojs/taro';
 import classnames from 'classnames';
 import { useAppStore } from '@/store/app';
 import StatusTag from '@/components/StatusTag';
@@ -37,14 +37,35 @@ const emptyForm = {
   expectedAudience: 0,
   performanceContent: '',
   specialRequirements: '',
+  approvalFlowId: undefined as string | undefined,
+  createdAt: '' as string | undefined,
   equipmentList: defaultEquipmentList.map((e) => ({ ...e }))
 };
 
 const RegistrationPage: React.FC = () => {
-  const { registrations, stages, saveDraft, submitApproval } = useAppStore();
+  const router = useRouter();
+  const { registrations, stages, saveDraft, submitApproval, updateRegistrationAndResumeApproval } = useAppStore();
   const [mode, setMode] = useState<Mode>('list');
+  const [editingApprovalId, setEditingApprovalId] = useState<string | null>(null);
 
   const [form, setForm] = useState({ ...emptyForm });
+
+  useEffect(() => {
+    const regId = router.params.regId;
+    const approvalId = router.params.approvalId;
+    if (regId) {
+      const reg = registrations.find((r) => r.id === regId);
+      if (reg) {
+        console.log('[Registration] 加载驳回的报批:', regId, '审批流:', approvalId);
+        handleEditDraft(reg);
+        if (approvalId) {
+          setEditingApprovalId(approvalId);
+        }
+        setMode('create');
+        Taro.showToast({ title: '请修改后重新提交', icon: 'none', duration: 2000 });
+      }
+    }
+  }, [router.params.regId, router.params.approvalId, registrations]);
 
   const updateField = (field: string, value: any) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -71,6 +92,7 @@ const RegistrationPage: React.FC = () => {
       id: '',
       equipmentList: defaultEquipmentList.map((e) => ({ ...e }))
     });
+    setEditingApprovalId(null);
   };
 
   const buildReg = (status: 'draft' | 'pending'): Registration => {
@@ -91,8 +113,9 @@ const RegistrationPage: React.FC = () => {
       performanceContent: form.performanceContent || '演出内容待补充',
       equipmentList: usedEquipments,
       specialRequirements: form.specialRequirements,
+      approvalFlowId: form.approvalFlowId || undefined,
       status,
-      createdAt: form.id ? formatDateTime(new Date().toISOString()) : formatDateTime(new Date().toISOString()),
+      createdAt: form.createdAt || formatDateTime(new Date().toISOString()),
       updatedAt: formatDateTime(new Date().toISOString())
     };
   };
@@ -108,10 +131,22 @@ const RegistrationPage: React.FC = () => {
     }
 
     const reg = buildReg('pending');
-    submitApproval(reg);
-    Taro.showToast({ title: '提交成功，等待审批', icon: 'success' });
+
+    if (editingApprovalId) {
+      updateRegistrationAndResumeApproval(reg, editingApprovalId);
+      Taro.showToast({ title: '修改成功，已重新提交审批', icon: 'success' });
+      setTimeout(() => {
+        Taro.navigateBack();
+      }, 800);
+    } else {
+      submitApproval(reg);
+      Taro.showToast({ title: '提交成功，等待审批', icon: 'success' });
+    }
+
     resetForm();
-    setMode('list');
+    if (!editingApprovalId) {
+      setMode('list');
+    }
   };
 
   const handleSaveDraft = () => {
@@ -138,6 +173,8 @@ const RegistrationPage: React.FC = () => {
       expectedAudience: reg.expectedAudience,
       performanceContent: reg.performanceContent,
       specialRequirements: reg.specialRequirements || '',
+      approvalFlowId: reg.approvalFlowId || undefined,
+      createdAt: reg.createdAt,
       equipmentList: [
         ...reg.equipmentList,
         ...defaultEquipmentList.filter(

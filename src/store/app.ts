@@ -63,6 +63,7 @@ interface AppState {
   saveDraft: (reg: Registration) => void;
   submitApproval: (reg: Registration) => void;
   addRegistration: (reg: Registration) => void;
+  updateRegistrationAndResumeApproval: (reg: Registration, approvalId: string) => void;
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -392,6 +393,68 @@ export const useAppStore = create<AppState>((set, get) => ({
             : r
         );
       }
+
+      return { approvals, registrations };
+    }),
+
+  updateRegistrationAndResumeApproval: (reg, approvalId) =>
+    set((state) => {
+      console.log('[Store] 更新报批并继续审批:', reg.id, approvalId);
+      const flow = state.approvals.find((a) => a.id === approvalId);
+      if (!flow) {
+        console.error('[Store] 审批流不存在:', approvalId);
+        return state;
+      }
+
+      const rejectedFrom = flow.rejectedFromNode;
+      let resumeNodeIndex = 0;
+      if (rejectedFrom) {
+        resumeNodeIndex = flow.nodes.findIndex((n) => n.type === rejectedFrom);
+        if (resumeNodeIndex < 0) resumeNodeIndex = 0;
+      }
+
+      console.log(`[Store] 从节点 ${resumeNodeIndex} (${flow.nodes[resumeNodeIndex]?.name}) 继续审批`);
+
+      const nodes = flow.nodes.map((n, idx) => {
+        if (idx < resumeNodeIndex) {
+          return { ...n, status: 'approved' as const };
+        }
+        if (idx === resumeNodeIndex) {
+          return {
+            ...n,
+            status: 'pending' as const,
+            comment: undefined,
+            operatedAt: undefined,
+            operator: undefined
+          };
+        }
+        return {
+          ...n,
+          status: 'pending' as const,
+          comment: undefined,
+          operatedAt: undefined,
+          operator: undefined
+        };
+      });
+
+      const approvals = state.approvals.map((a) =>
+        a.id === approvalId
+          ? {
+              ...a,
+              nodes,
+              currentNodeIndex: resumeNodeIndex,
+              overallStatus: 'pending' as const,
+              rejectedFromNode: undefined,
+              updatedAt: formatDateTime(new Date().toISOString())
+            }
+          : a
+      );
+
+      const registrations = state.registrations.map((r) =>
+        r.id === reg.id
+          ? { ...reg, status: 'pending' as const, updatedAt: formatDateTime(new Date().toISOString()) }
+          : r
+      );
 
       return { approvals, registrations };
     }),

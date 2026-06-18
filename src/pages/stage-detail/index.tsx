@@ -19,6 +19,12 @@ const StageDetailPage: React.FC = () => {
   const [phone, setPhone] = useState('');
   const [performanceName, setPerformanceName] = useState('');
 
+  const [showWaitlistModal, setShowWaitlistModal] = useState(false);
+  const [waitlistSlotId, setWaitlistSlotId] = useState<string | null>(null);
+  const [waitlistPerformance, setWaitlistPerformance] = useState('');
+  const [waitlistApplicant, setWaitlistApplicant] = useState('');
+  const [waitlistPhone, setWaitlistPhone] = useState('');
+
   const stage = useMemo(() => stages.find((s) => s.id === stageId), [stages, stageId]);
   const slots = useMemo(
     () => scheduleSlots.filter((s) => s.stageId === stageId && s.date === selectedDate),
@@ -71,27 +77,64 @@ const StageDetailPage: React.FC = () => {
 
   const handleAddWaitlist = () => {
     if (!stageId) return;
-    const availableSlots = slots.filter((s) => s.status !== 'available');
-    if (availableSlots.length === 0) {
+    const unavailableSlots = slots.filter((s) => s.status !== 'available');
+    if (unavailableSlots.length === 0) {
       Taro.showToast({ title: '暂无满档时段，可直接预约', icon: 'none' });
       return;
     }
-    const target = availableSlots[0];
+    setWaitlistSlotId(null);
+    setWaitlistPerformance('');
+    setWaitlistApplicant('');
+    setWaitlistPhone('');
+    setShowWaitlistModal(true);
+  };
+
+  const confirmAddWaitlist = () => {
+    if (!waitlistSlotId) {
+      Taro.showToast({ title: '请选择候补时段', icon: 'none' });
+      return;
+    }
+    if (!waitlistPerformance.trim()) {
+      Taro.showToast({ title: '请填写演出名称', icon: 'none' });
+      return;
+    }
+    if (!waitlistApplicant.trim()) {
+      Taro.showToast({ title: '请填写联系人', icon: 'none' });
+      return;
+    }
+    if (!waitlistPhone.trim()) {
+      Taro.showToast({ title: '请填写联系电话', icon: 'none' });
+      return;
+    }
+    const target = slots.find((s) => s.id === waitlistSlotId);
+    if (!target) return;
+
     addWaitlist({
       id: generateId('wl'),
-      stageId,
-      stageName: stage.name,
+      stageId: stageId!,
+      stageName: stage!.name,
       date: selectedDate,
       startTime: target.startTime,
       endTime: target.endTime,
-      applicant: '当前用户',
-      applicantPhone: '13800138000',
+      applicant: waitlistApplicant,
+      applicantPhone: waitlistPhone,
+      performanceName: waitlistPerformance,
       priority: WaitlistPriority.NORMAL,
       status: 'waiting',
       createdAt: new Date().toISOString()
     });
+
     Taro.showToast({ title: '候补登记成功', icon: 'success' });
+    setShowWaitlistModal(false);
+    setWaitlistSlotId(null);
+    setWaitlistPerformance('');
+    setWaitlistApplicant('');
+    setWaitlistPhone('');
   };
+
+  const unavailableSlots = useMemo(() => {
+    return slots.filter((s) => s.status !== 'available');
+  }, [slots]);
 
   return (
     <View className={styles.container}>
@@ -260,6 +303,95 @@ const StageDetailPage: React.FC = () => {
           </View>
         </View>
       </View>
+
+      {showWaitlistModal && (
+        <View className={styles.modalMask} onClick={() => setShowWaitlistModal(false)}>
+          <View className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+            <Text className={styles.modalTitle}>候补登记</Text>
+            <View style={{ marginBottom: 16}}>
+              <Text style={{ fontSize: '26rpx', color: '#D4A853', fontWeight: 600 }}>
+                🎭 {stage?.name} · {selectedDate}
+              </Text>
+            </View>
+
+            <View className={styles.formItem}>
+              <Text className={styles.formLabel}>选择时段 *</Text>
+              <View style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {unavailableSlots.map((slot) => (
+                  <View
+                    key={slot.id}
+                    onClick={() => setWaitlistSlotId(slot.id)}
+                    style={{
+                      padding: 16,
+                      borderRadius: 8,
+                      border: waitlistSlotId === slot.id ? '2rpx solid #D4A853' : '1rpx solid #E5E6EB',
+                      backgroundColor: waitlistSlotId === slot.id ? 'rgba(212,168,83,0.06)' : '#F7F8FA'
+                    }}
+                  >
+                    <Text style={{ fontSize: '26rpx', color: '#4E5969', fontWeight: 500 }}>
+                      {slot.startTime} - {slot.endTime}
+                    </Text>
+                    <Text style={{ fontSize: '22rpx', color: '#86909C', marginTop: 4, display: 'block' }}>
+                      当前状态：{slot.status === 'pending' ? '待确认' : slot.status === 'confirmed' ? '已确认' : slot.status}
+                      {slot.bookedBy ? ` · 预约方：${slot.bookedBy}` : ''}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+
+            <View className={styles.formItem}>
+              <Text className={styles.formLabel}>演出名称 *</Text>
+              <Input
+                className={styles.formInput}
+                placeholder="请输入演出名称"
+                value={waitlistPerformance}
+                onInput={(e) => setWaitlistPerformance(e.detail.value)}
+              />
+            </View>
+
+            <View className={styles.formItem}>
+              <Text className={styles.formLabel}>联系人 *</Text>
+              <Input
+                className={styles.formInput}
+                placeholder="请输入姓名"
+                value={waitlistApplicant}
+                onInput={(e) => setWaitlistApplicant(e.detail.value)}
+              />
+            </View>
+
+            <View className={styles.formItem}>
+              <Text className={styles.formLabel}>联系电话 *</Text>
+              <Input
+                className={styles.formInput}
+                type="phone"
+                placeholder="请输入手机号"
+                value={waitlistPhone}
+                onInput={(e) => setWaitlistPhone(e.detail.value)}
+              />
+            </View>
+
+            <View style={{ backgroundColor: '#FFF7E0', padding: 16, borderRadius: 8, marginBottom: 24 }}>
+              <Text style={{ fontSize: '24rpx', color: '#86909C' }}>
+                💡 候补按优先级排序，档期释放后按顺序自动通知，收到通知后请在30分钟内确认
+              </Text>
+            </View>
+
+            <View className={styles.modalActions}>
+              <View
+                className={classnames(styles.modalBtn, styles.modalBtnCancel)}
+                onClick={() => setShowWaitlistModal(false)}>
+                <Text>取消</Text>
+              </View>
+              <View
+                className={classnames(styles.modalBtn, styles.modalBtnConfirm)}
+                onClick={confirmAddWaitlist}>
+                <Text>确认登记</Text>
+              </View>
+            </View>
+          </View>
+        </View>
+      )}
     </View>
   );
 };

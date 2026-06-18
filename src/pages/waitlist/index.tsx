@@ -14,18 +14,23 @@ const WaitlistPage: React.FC = () => {
   const { waitlists, addWaitlist, confirmWaitlist, cancelWaitlist } = useAppStore();
   const [activeTab, setActiveTab] = useState<TabType>('all');
 
+  const activeWaitlists = useMemo(() => {
+    return waitlists.filter((w) => w.status !== 'cancelled');
+  }, [waitlists]);
+
   const filteredList = useMemo(() => {
-    if (activeTab === 'all') return waitlists;
-    return waitlists.filter((w) => w.status === activeTab);
-  }, [waitlists, activeTab]);
+    if (activeTab === 'all') return activeWaitlists;
+    return activeWaitlists.filter((w) => w.status === activeTab);
+  }, [activeWaitlists, activeTab]);
 
   const stats = useMemo(() => {
     return {
-      total: waitlists.length,
-      waiting: waitlists.filter((w) => w.status === 'waiting').length,
-      notified: waitlists.filter((w) => w.status === 'notified').length
+      total: activeWaitlists.length,
+      waiting: activeWaitlists.filter((w) => w.status === 'waiting').length,
+      notified: activeWaitlists.filter((w) => w.status === 'notified').length,
+      confirmed: activeWaitlists.filter((w) => w.status === 'confirmed').length
     };
-  }, [waitlists]);
+  }, [activeWaitlists]);
 
   const handleAddWaitlist = () => {
     Taro.showModal({

@@ -167,3 +167,60 @@
   font-size: $font-size-sm;
   color: $color-text-tertiary;
 }
+
+.stageSlots {
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-md;
+  margin-bottom: $spacing-md;
+  margin-top: -$spacing-sm;
+  box-shadow: $shadow-card;
+}
+
+.slotsTitle {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  margin-bottom: $spacing-sm;
+  display: block;
+}
+
+.slotRow {
+  padding: $spacing-sm 0;
+  border-bottom: 1rpx solid $color-border-light;
+
+  &:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+}
+
+.slotTime {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $spacing-xs;
+}
+
+.slotTimeText {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-primary;
+}
+
+.slotDetail {
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+}
+
+.slotDetailText {
+  font-size: $font-size-xs;
+  color: $color-text-secondary;
+}
+
+.slotCountdown {
+  font-size: $font-size-xs;
+  color: $color-warning;
+  font-weight: $font-weight-medium;
+}

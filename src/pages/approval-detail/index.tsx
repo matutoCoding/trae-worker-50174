@@ -65,10 +65,25 @@ const ApprovalDetailPage: React.FC = () => {
     });
   };
 
+  const handleGoEditRegistration = () => {
+    if (!registration) return;
+    Taro.showModal({
+      title: '去修改报批内容',
+      content: '将跳转到报批登记页修改演出信息和设备清单，修改完成后再提交审批。',
+      success: (res) => {
+        if (res.confirm) {
+          Taro.navigateTo({
+            url: `/pages/registration/index?regId=${registration.id}&approvalId=${flow.id}`
+          });
+        }
+      }
+    });
+  };
+
   const handleResubmit = () => {
     Taro.showModal({
       title: '重新提交',
-      content: '已根据驳回意见修改完成，确认重新提交审批吗？',
+      content: '已根据驳回意见修改完成，确认重新提交审批吗？将从被驳回节点继续。',
       success: (res) => {
         if (res.confirm) {
           resubmitApproval(flow.id);
@@ -218,8 +233,11 @@ const ApprovalDetailPage: React.FC = () => {
 
       {isRejected && (
         <View className={styles.bottomBar}>
-          <View className={classnames(styles.btn, styles.btnResubmit)} onClick={handleResubmit}>
-            <Text>修改后重新提交</Text>
+          <View className={classnames(styles.btn, styles.btnReject)} onClick={handleResubmit}>
+            <Text>直接重新提交</Text>
+          </View>
+          <View className={classnames(styles.btn, styles.btnApprove)} onClick={handleGoEditRegistration}>
+            <Text>修改内容后再提交</Text>
           </View>
         </View>
       )}
