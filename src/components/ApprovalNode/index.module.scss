@@ -1,0 +1,91 @@
+@use '@/styles/variables.scss' as *;
+
+.node {
+  display: flex;
+  align-items: flex-start;
+  position: relative;
+}
+
+.node:not(:last-child) {
+  padding-bottom: $spacing-lg;
+}
+
+.connector {
+  position: absolute;
+  left: 24rpx;
+  top: 60rpx;
+  bottom: 0;
+  width: 2rpx;
+  background: $color-border;
+}
+
+.node:last-child .connector {
+  display: none;
+}
+
+.circle {
+  width: 48rpx;
+  height: 48rpx;
+  border-radius: $radius-round;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  color: $color-text-white;
+  flex-shrink: 0;
+  margin-right: $spacing-md;
+  z-index: 1;
+}
+
+.circlePending {
+  background: $color-border;
+  color: $color-text-tertiary;
+}
+
+.circleApproved {
+  background: $color-success;
+}
+
+.circleRejected {
+  background: $color-error;
+}
+
+.content {
+  flex: 1;
+  padding-top: $spacing-xs;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: $spacing-xs;
+}
+
+.name {
+  font-size: $font-size-md;
+  font-weight: $font-weight-medium;
+  color: $color-text-primary;
+}
+
+.role {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.time {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+  margin-bottom: $spacing-xs;
+}
+
+.comment {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  line-height: $line-height-normal;
+  padding: $spacing-sm;
+  background: $color-bg-hover;
+  border-radius: $radius-sm;
+  margin-top: $spacing-xs;
+}

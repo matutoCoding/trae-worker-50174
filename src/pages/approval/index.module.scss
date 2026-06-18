@@ -1,0 +1,254 @@
+@use '@/styles/variables.scss' as *;
+
+.container {
+  padding: 0 $page-padding;
+  padding-bottom: 40rpx;
+  min-height: 100vh;
+}
+
+.header {
+  padding: $spacing-lg 0;
+}
+
+.title {
+  font-size: $font-size-xxl;
+  font-weight: $font-weight-bold;
+  color: $color-primary;
+  margin-bottom: $spacing-xs;
+}
+
+.subtitle {
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+}
+
+.statsRow {
+  display: flex;
+  gap: $spacing-md;
+  margin-bottom: $spacing-md;
+}
+
+.statCard {
+  flex: 1;
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-md;
+  box-shadow: $shadow-card;
+  text-align: center;
+}
+
+.statValue {
+  font-size: $font-size-xl;
+  font-weight: $font-weight-bold;
+
+  &.pending {
+    color: $color-status-pending;
+  }
+  &.approved {
+    color: $color-status-approved;
+  }
+  &.rejected {
+    color: $color-status-rejected;
+  }
+}
+
+.statLabel {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+  margin-top: 4rpx;
+}
+
+.tabs {
+  display: flex;
+  background: $color-bg-card;
+  border-radius: $radius-button;
+  padding: 6rpx;
+  margin-bottom: $spacing-md;
+  box-shadow: $shadow-card;
+}
+
+.tabItem {
+  flex: 1;
+  height: $button-height-sm;
+  border-radius: $radius-button;
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  @include button-reset;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tabActive {
+  background: $color-primary;
+  color: $color-text-white;
+}
+
+.approvalCard {
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  margin-bottom: $spacing-md;
+  box-shadow: $shadow-card;
+  transition: all $transition-base;
+
+  &:active {
+    transform: scale(0.98);
+    opacity: 0.95;
+  }
+}
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: $spacing-md;
+}
+
+.performanceName {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  flex: 1;
+  @include text-ellipsis;
+}
+
+.flowProgress {
+  display: flex;
+  align-items: center;
+  margin-bottom: $spacing-md;
+  padding: $spacing-md;
+  background: $color-bg-hover;
+  border-radius: $radius-md;
+}
+
+.progressNode {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56rpx;
+  height: 56rpx;
+  border-radius: $radius-round;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-semibold;
+  color: $color-text-white;
+  position: relative;
+}
+
+.progressNode.pending {
+  background: $color-border;
+  color: $color-text-tertiary;
+}
+
+.progressNode.current {
+  background: $color-status-pending;
+  box-shadow: 0 0 0 6rpx rgba(22, 93, 255, 0.15);
+}
+
+.progressNode.approved {
+  background: $color-status-approved;
+}
+
+.progressNode.rejected {
+  background: $color-status-rejected;
+}
+
+.progressLine {
+  flex: 1;
+  height: 4rpx;
+  margin: 0 $spacing-xs;
+  border-radius: 2rpx;
+  background: $color-border;
+}
+
+.progressLine.done {
+  background: $color-status-approved;
+}
+
+.nodeLabel {
+  text-align: center;
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+  margin-top: $spacing-xs;
+}
+
+.progressWrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.infoRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-md;
+  margin-bottom: $spacing-md;
+}
+
+.infoItem {
+  display: flex;
+  align-items: center;
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+}
+
+.infoLabel {
+  color: $color-text-tertiary;
+  margin-right: $spacing-xs;
+}
+
+.timeRow {
+  display: flex;
+  justify-content: space-between;
+  padding-top: $spacing-md;
+  border-top: 1rpx solid $color-divider;
+}
+
+.timeText {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.currentNodeTip {
+  display: flex;
+  align-items: center;
+  padding: $spacing-sm $spacing-md;
+  background: rgba(22, 93, 255, 0.08);
+  border-radius: $radius-sm;
+  margin-top: $spacing-sm;
+}
+
+.tipText {
+  font-size: $font-size-xs;
+  color: $color-status-pending;
+}
+
+.rejectTip {
+  display: flex;
+  align-items: center;
+  padding: $spacing-sm $spacing-md;
+  background: rgba(245, 63, 63, 0.08);
+  border-radius: $radius-sm;
+  margin-top: $spacing-sm;
+}
+
+.rejectTipText {
+  font-size: $font-size-xs;
+  color: $color-status-rejected;
+}
+
+.emptyState {
+  text-align: center;
+  padding: $spacing-xl * 3 $spacing-lg;
+}
+
+.emptyIcon {
+  font-size: 100rpx;
+  margin-bottom: $spacing-md;
+}
+
+.emptyText {
+  font-size: $font-size-md;
+  color: $color-text-tertiary;
+}
