@@ -1,21 +1,32 @@
-import React, { useMemo } from 'react';
-import { View, Text, Image } from '@tarojs/components';
+import React, { useMemo, useState } from 'react';
+import { View, Text, Image, Input, Textarea } from '@tarojs/components';
 import Taro, { useRouter } from '@tarojs/taro';
 import classnames from 'classnames';
 import { useAppStore } from '@/store/app';
 import StatusTag from '@/components/StatusTag';
-import { getStatusText } from '@/utils';
+import { generateId, getStatusText } from '@/utils';
+import { WaitlistPriority } from '@/types/waitlist';
 import styles from './index.module.scss';
 
 const StageDetailPage: React.FC = () => {
   const router = useRouter();
-  const { stages, scheduleSlots, selectedDate } = useAppStore();
+  const { stages, scheduleSlots, selectedDate, bookSlot, addWaitlist } = useAppStore();
   const stageId = router.params.id;
+
+  const [showBookModal, setShowBookModal] = useState(false);
+  const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
+  const [applicant, setApplicant] = useState('');
+  const [phone, setPhone] = useState('');
+  const [performanceName, setPerformanceName] = useState('');
 
   const stage = useMemo(() => stages.find((s) => s.id === stageId), [stages, stageId]);
   const slots = useMemo(
     () => scheduleSlots.filter((s) => s.stageId === stageId && s.date === selectedDate),
     [scheduleSlots, stageId, selectedDate]
+  );
+  const selectedSlot = useMemo(
+    () => slots.find((s) => s.id === selectedSlotId),
+    [slots, selectedSlotId]
   );
 
   if (!stage) {
@@ -27,12 +38,58 @@ const StageDetailPage: React.FC = () => {
   }
 
   const handleBookSlot = (slotId: string) => {
-    console.log('[StageDetail] 预约档期:', slotId);
-    Taro.showToast({ title: '预约成功，待确认', icon: 'success' });
+    setSelectedSlotId(slotId);
+    setShowBookModal(true);
+  };
+
+  const confirmBookSlot = () => {
+    if (!applicant.trim()) {
+      Taro.showToast({ title: '请填写预约人姓名', icon: 'none' });
+      return;
+    }
+    if (!phone.trim()) {
+      Taro.showToast({ title: '请填写联系电话', icon: 'none' });
+      return;
+    }
+    if (!selectedSlotId) return;
+
+    const booking = bookSlot(selectedSlotId, stageId!, applicant, phone, performanceName || '未命名演出');
+    if (booking) {
+      Taro.showToast({ title: '预约成功，待确认', icon: 'success' });
+      setShowBookModal(false);
+      setSelectedSlotId(null);
+      setApplicant('');
+      setPhone('');
+      setPerformanceName('');
+      setTimeout(() => {
+        Taro.switchTab({ url: '/pages/schedule/index' });
+      }, 600);
+    } else {
+      Taro.showToast({ title: '档期已被预约', icon: 'none' });
+    }
   };
 
   const handleAddWaitlist = () => {
-    console.log('[StageDetail] 添加候补:', stageId);
+    if (!stageId) return;
+    const availableSlots = slots.filter((s) => s.status !== 'available');
+    if (availableSlots.length === 0) {
+      Taro.showToast({ title: '暂无满档时段，可直接预约', icon: 'none' });
+      return;
+    }
+    const target = availableSlots[0];
+    addWaitlist({
+      id: generateId('wl'),
+      stageId,
+      stageName: stage.name,
+      date: selectedDate,
+      startTime: target.startTime,
+      endTime: target.endTime,
+      applicant: '当前用户',
+      applicantPhone: '13800138000',
+      priority: WaitlistPriority.NORMAL,
+      status: 'waiting',
+      createdAt: new Date().toISOString()
+    });
     Taro.showToast({ title: '候补登记成功', icon: 'success' });
   };
 
@@ -144,6 +201,63 @@ const StageDetailPage: React.FC = () => {
           onClick={() => Taro.showToast({ title: '请先选择档期', icon: 'none' })}
         >
           <Text>预约舞台</Text>
+        </View>
+      </View>
+
+      {showBookModal && (
+        <View className={styles.modalMask} onClick={() => setShowBookModal(false)}>
+          <View className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+            <Text className={styles.modalTitle}>预约档期</Text>
+            <View style={{ marginBottom: 16}}>
+              <Text style={{ fontSize: '26rpx', color: '#D4A853', fontWeight: 600 }}>
+                {selectedDate} {selectedSlot?.startTime} - {selectedSlot?.endTime}
+              </Text>
+            </View>
+            <View className={styles.formItem}>
+              <Text className={styles.formLabel}>预约人 *</Text>
+              <Input
+                className={styles.formInput}
+                placeholder="请输入姓名"
+                value={applicant}
+                onInput={(e) => setApplicant(e.detail.value)}
+              />
+            </View>
+            <View className={styles.formItem}>
+              <Text className={styles.formLabel}>联系电话 *</Text>
+              <Input
+                className={styles.formInput}
+                type="phone"
+                placeholder="请输入手机号"
+                value={phone}
+                onInput={(e) => setPhone(e.detail.value)}
+              />
+            </View>
+            <View className={styles.formItem}>
+              <Text className={styles.formLabel}>演出名称</Text>
+              <Input
+                className={styles.formInput}
+                placeholder="请输入演出名称"
+                value={performanceName}
+                onInput={(e) => setPerformanceName(e.detail.value)}
+              />
+            </View>
+            <View style={{ backgroundColor: '#FFF7E0', padding: 16, borderRadius: 8, marginBottom: 24 }}>
+              <Text style={{ fontSize: '24rpx', color: '#86909C }}>
+                💡 提交后需在 <Text style={{ color: '#D4A853', fontWeight: 600 }}>2小时内</Text>内完成确认，超时将自动释放并通知候补人员补位</Text>
+            </View>
+            <View className={styles.modalActions}>
+              <View
+                className={classnames(styles.modalBtn, styles.modalBtnCancel)}
+                onClick={() => setShowBookModal(false)}>
+                <Text>取消</Text>
+              </View>
+              <View
+                className={classnames(styles.modalBtn, styles.modalBtnConfirm)}
+                onClick={confirmBookSlot}>
+                <Text>确认预约</Text>
+              </View>
+            </View>
+          </View>
         </View>
       </View>
     </View>

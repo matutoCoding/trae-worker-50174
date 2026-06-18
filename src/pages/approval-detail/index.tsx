@@ -11,7 +11,7 @@ import styles from './index.module.scss';
 
 const ApprovalDetailPage: React.FC = () => {
   const router = useRouter();
-  const { approvals, registrations, approveNode, rejectNode } = useAppStore();
+  const { approvals, registrations, approveNode, rejectNode, resubmitApproval } = useAppStore();
   const approvalId = router.params.id;
   const [rejectReason, setRejectReason] = useState('');
 
@@ -71,8 +71,8 @@ const ApprovalDetailPage: React.FC = () => {
       content: '已根据驳回意见修改完成，确认重新提交审批吗？',
       success: (res) => {
         if (res.confirm) {
+          resubmitApproval(flow.id);
           Taro.showToast({ title: '已重新提交', icon: 'success' });
-          console.log('[ApprovalDetail] 重新提交审批:', flow.id);
         }
       }
     });

@@ -11,7 +11,7 @@ import styles from './index.module.scss';
 type TabType = 'all' | 'waiting' | 'notified';
 
 const WaitlistPage: React.FC = () => {
-  const { waitlists, addWaitlist } = useAppStore();
+  const { waitlists, addWaitlist, confirmWaitlist, cancelWaitlist } = useAppStore();
   const [activeTab, setActiveTab] = useState<TabType>('all');
 
   const filteredList = useMemo(() => {
@@ -55,8 +55,29 @@ const WaitlistPage: React.FC = () => {
   };
 
   const handleConfirm = (id: string) => {
-    Taro.showToast({ title: '已确认补位', icon: 'success' });
-    console.log('[Waitlist] 确认补位:', id);
+    Taro.showModal({
+      title: '确认补位',
+      content: '确定要确认该补位吗？确认后该档期将归您所有。',
+      success: (res) => {
+        if (res.confirm) {
+          confirmWaitlist(id);
+          Taro.showToast({ title: '已确认补位', icon: 'success' });
+        }
+      }
+    });
+  };
+
+  const handleGiveUp = (id: string) => {
+    Taro.showModal({
+      title: '放弃补位',
+      content: '确定要放弃该补位吗？放弃后系统将自动通知下一位候补人员。',
+      success: (res) => {
+        if (res.confirm) {
+          cancelWaitlist(id);
+          Taro.showToast({ title: '已放弃补位', icon: 'none' });
+        }
+      }
+    });
   };
 
   const handleCancel = (id: string) => {
@@ -65,8 +86,8 @@ const WaitlistPage: React.FC = () => {
       content: '确定要取消该候补登记吗？',
       success: (res) => {
         if (res.confirm) {
-          Taro.showToast({ title: '已取消', icon: 'none' });
-          console.log('[Waitlist] 取消候补:', id);
+          cancelWaitlist(id);
+          Taro.showToast({ title: '已取消候补', icon: 'none' });
         }
       }
     });
@@ -159,7 +180,7 @@ const WaitlistPage: React.FC = () => {
               <View className={styles.actionRow}>
                 <View
                   className={classnames(styles.actionBtn, styles.secondaryBtn)}
-                  onClick={() => handleCancel(item.id)}
+                  onClick={() => handleGiveUp(item.id)}
                 >
                   <Text>放弃补位</Text>
                 </View>

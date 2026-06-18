@@ -22,26 +22,29 @@ const defaultEquipmentList: EquipmentItem[] = [
   { id: 'eq-9', name: '旋转舞台', category: 'stage', quantity: 0, unit: '套' }
 ];
 
+const emptyForm = {
+  id: '',
+  performanceName: '',
+  performanceType: '',
+  organizer: '',
+  contactPerson: '',
+  contactPhone: '',
+  performanceDate: '',
+  startTime: '19:00',
+  endTime: '22:00',
+  stageId: '',
+  stageName: '',
+  expectedAudience: 0,
+  performanceContent: '',
+  specialRequirements: '',
+  equipmentList: defaultEquipmentList.map((e) => ({ ...e }))
+};
+
 const RegistrationPage: React.FC = () => {
-  const { registrations, stages, addRegistration } = useAppStore();
+  const { registrations, stages, saveDraft, submitApproval } = useAppStore();
   const [mode, setMode] = useState<Mode>('list');
 
-  const [form, setForm] = useState({
-    performanceName: '',
-    performanceType: '',
-    organizer: '',
-    contactPerson: '',
-    contactPhone: '',
-    performanceDate: '',
-    startTime: '19:00',
-    endTime: '22:00',
-    stageId: '',
-    stageName: '',
-    expectedAudience: 0,
-    performanceContent: '',
-    specialRequirements: '',
-    equipmentList: defaultEquipmentList.map((e) => ({ ...e }))
-  });
+  const [form, setForm] = useState({ ...emptyForm });
 
   const updateField = (field: string, value: any) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -62,18 +65,18 @@ const RegistrationPage: React.FC = () => {
     return form.equipmentList.reduce((sum, eq) => sum + eq.quantity, 0);
   }, [form.equipmentList]);
 
-  const handleSubmit = () => {
-    if (!form.performanceName) {
-      Taro.showToast({ title: '请输入演出名称', icon: 'none' });
-      return;
-    }
-    if (!form.contactPerson || !form.contactPhone) {
-      Taro.showToast({ title: '请填写联系信息', icon: 'none' });
-      return;
-    }
+  const resetForm = () => {
+    setForm({
+      ...emptyForm,
+      id: '',
+      equipmentList: defaultEquipmentList.map((e) => ({ ...e }))
+    });
+  };
 
-    const newReg: Registration = {
-      id: generateId('reg'),
+  const buildReg = (status: 'draft' | 'pending'): Registration => {
+    const usedEquipments = form.equipmentList.filter((e) => e.quantity > 0);
+    return {
+      id: form.id || generateId('reg'),
       performanceName: form.performanceName,
       performanceType: form.performanceType || '话剧',
       organizer: form.organizer || '未填写',
@@ -86,22 +89,63 @@ const RegistrationPage: React.FC = () => {
       stageName: form.stageName || stages[0]?.name || '',
       expectedAudience: form.expectedAudience || 100,
       performanceContent: form.performanceContent || '演出内容待补充',
-      equipmentList: form.equipmentList.filter((e) => e.quantity > 0),
+      equipmentList: usedEquipments,
       specialRequirements: form.specialRequirements,
-      status: 'pending',
-      createdAt: formatDateTime(new Date().toISOString()),
+      status,
+      createdAt: form.id ? formatDateTime(new Date().toISOString()) : formatDateTime(new Date().toISOString()),
       updatedAt: formatDateTime(new Date().toISOString())
     };
+  };
 
-    console.log('[Registration] 提交报批:', newReg);
-    addRegistration(newReg);
+  const handleSubmit = () => {
+    if (!form.performanceName) {
+      Taro.showToast({ title: '请输入演出名称', icon: 'none' });
+      return;
+    }
+    if (!form.contactPerson || !form.contactPhone) {
+      Taro.showToast({ title: '请填写联系信息', icon: 'none' });
+      return;
+    }
+
+    const reg = buildReg('pending');
+    submitApproval(reg);
     Taro.showToast({ title: '提交成功，等待审批', icon: 'success' });
+    resetForm();
     setMode('list');
   };
 
   const handleSaveDraft = () => {
+    const reg = buildReg('draft');
+    saveDraft(reg);
     Taro.showToast({ title: '草稿已保存', icon: 'success' });
+    resetForm();
     setMode('list');
+  };
+
+  const handleEditDraft = (reg: Registration) => {
+    setForm({
+      id: reg.id,
+      performanceName: reg.performanceName,
+      performanceType: reg.performanceType,
+      organizer: reg.organizer,
+      contactPerson: reg.contactPerson,
+      contactPhone: reg.contactPhone,
+      performanceDate: reg.performanceDate,
+      startTime: reg.startTime,
+      endTime: reg.endTime,
+      stageId: reg.stageId,
+      stageName: reg.stageName,
+      expectedAudience: reg.expectedAudience,
+      performanceContent: reg.performanceContent,
+      specialRequirements: reg.specialRequirements || '',
+      equipmentList: [
+        ...reg.equipmentList,
+        ...defaultEquipmentList.filter(
+          (de) => !reg.equipmentList.find((e) => e.id === de.id)
+        )
+      ].sort((a, b) => a.id.localeCompare(b.id))
+    });
+    setMode('create');
   };
 
   const renderCreateForm = () => (
@@ -325,6 +369,22 @@ const RegistrationPage: React.FC = () => {
                 <Text className={styles.regTime}>主办：{reg.organizer} · {reg.contactPerson}</Text>
                 <Text className={styles.regTime}>{formatDateTime(reg.createdAt)}</Text>
               </View>
+              {reg.status === 'draft' && (
+                <View style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16 }}>
+                  <View
+                    style={{
+                      padding: '8rpx 32rpx',
+                      backgroundColor: 'rgba(45,52,54,0.08)',
+                      borderRadius: 999,
+                      fontSize: '24rpx',
+                      color: '#2D3436'
+                    }}
+                    onClick={() => handleEditDraft(reg)}
+                  >
+                    <Text>✏️ 继续编辑</Text>
+                  </View>
+                </View>
+              )}
             </View>
           ))
         ) : (

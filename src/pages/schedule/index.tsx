@@ -1,17 +1,34 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { View, Text, ScrollView } from '@tarojs/components';
-import Taro from '@tarojs/taro';
+import Taro, { useDidShow } from '@tarojs/taro';
 import dayjs from 'dayjs';
 import classnames from 'classnames';
 import { useAppStore } from '@/store/app';
 import StageCard from '@/components/StageCard';
 import StatusTag from '@/components/StatusTag';
 import { ScheduleSlot } from '@/types/stage';
+import { getCountdownText } from '@/utils';
 import styles from './index.module.scss';
 
 const SchedulePage: React.FC = () => {
-  const { stages, scheduleSlots, bookings, selectedDate, setSelectedDate } = useAppStore();
+  const { stages, scheduleSlots, bookings, selectedDate, setSelectedDate, checkAndReleaseExpiredSlots } = useAppStore();
   const [filter, setFilter] = useState<'all' | 'available' | 'pending' | 'confirmed'>('all');
+  const [, setTick] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const released = checkAndReleaseExpiredSlots();
+      if (released > 0) {
+        Taro.showToast({ title: `已自动释放${released}个超时档期`, icon: 'none' });
+      }
+      setTick((t) => t + 1);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [checkAndReleaseExpiredSlots]);
+
+  useDidShow(() => {
+    checkAndReleaseExpiredSlots();
+  });
 
   const dateList = useMemo(() => {
     const list = [];
@@ -51,10 +68,14 @@ const SchedulePage: React.FC = () => {
     setSelectedDate(newDate.format('YYYY-MM-DD'));
   };
 
-  const handleRefresh = () => {
-    Taro.showToast({ title: '刷新成功', icon: 'success' });
+  const handleRefresh = useCallback(() => {
+    const released = checkAndReleaseExpiredSlots();
+    Taro.showToast({
+      title: released > 0 ? `已释放${released}个超时档期` : '刷新成功',
+      icon: 'success'
+    });
     Taro.stopPullDownRefresh();
-  };
+  }, [checkAndReleaseExpiredSlots]);
 
   return (
     <ScrollView
@@ -113,14 +134,22 @@ const SchedulePage: React.FC = () => {
                 }}
               >
                 <View style={{ flex: 1 }}>
-                  <Text style={{ fontSize: '26rpx', color: '#4E5969' }}>
-                    {stage?.name} {slot.startTime}-{slot.endTime}
+                  <Text style={{ fontSize: '26rpx', color: '#4E5969', fontWeight: 500 }}>
+                    {stage?.name} · {slot.startTime}-{slot.endTime}
                   </Text>
-                  <Text style={{ fontSize: '22rpx', color: '#FF7D00' }}>
-                    {booking ? `预约方：${booking.applicant}` : ''}
+                  <Text style={{ fontSize: '22rpx', color: '#FF7D00', marginTop: 4, display: 'block' }}>
+                    👤 预约方：{slot.bookedBy || booking?.applicant || '—'}
                   </Text>
+                  {booking?.performanceName && (
+                    <Text style={{ fontSize: '20rpx', color: '#86909C', marginTop: 2, display: 'block' }}>
+                      🎭 {booking.performanceName}
+                    </Text>
+                  )}
                 </View>
-                <StatusTag status="pending" text={slot.expiresAt ? dayjs().diff(dayjs(slot.expiresAt), 'minute') < 0 ? `${Math.abs(dayjs().diff(dayjs(slot.expiresAt), 'minute'))}分钟后释放` : '已超时' : '待确认'} />
+                <StatusTag
+                  status="pending"
+                  text={slot.expiresAt ? getCountdownText(slot.expiresAt) : '待确认'}
+                />
               </View>
             );
           })}
